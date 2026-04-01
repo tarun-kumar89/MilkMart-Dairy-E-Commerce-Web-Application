@@ -1,0 +1,129 @@
+{% extends 'app/base.html' %}
+{% load static %}
+{% block title %} Checkout {% endblock title %}
+
+{% block main-content %}
+<div class="container">
+    {% if messages %}
+    {% for msg in messages %}
+     <div class="alert alert-danger" role="alert">
+        {{msg}}
+     </div>
+     {% endfor %}
+     {% endif %}
+
+<div class="row mt-5">
+    <div class="col-sm-6">
+        <h4>Order Summary</h4>
+        <hr>
+        {% for item in cart_items %}
+         <div class="card mb-2">
+            <div class="card-body">
+                <h5>Product :  {{item.product.title}}</h5>
+                <p>Quantity :  {{item.quantity}}</p>
+                <p class="fw-bold">Price: {{item.product.discounted_price}}</p>
+            </div>
+         </div>
+         {% endfor %}
+         <p class="fw-bold">Total Cost + Rs.40 = {{totalamount}}</p>
+         <small>Term and Condition : Lorem ipsum dolor sit amet, consectetur adipisicing elit. Consequuntur quo numquam omnis doloribus praesentium odio deleniti expedita magni, asperiores, recusandae adipisci eligendi distinctio nulla quas. Neque, autem? Labore, repellendus molestias?</small>
+
+
+    </div>
+    <div class="col-sm-4 offset-sm-1">
+        <h4>Select Shipping Address</h4>
+        <hr>
+        <form method="post" id="myform">
+            {% csrf_token %}
+          {% for ad in add %}
+<div class="card mb-3">
+    <div class="card-body">
+
+        <input class="form-check-input" type="radio"
+               name="custid"
+               id="custadd{{forloop.counter}}"
+               value="{{ad.id}}">
+
+        <label for="custadd{{forloop.counter}}" style="cursor:pointer;">
+            <h5>{{ad.name}}</h5>
+            <p>Mobile: {{ad.mobile}}</p>
+            <p>{{ad.locality}}, {{ad.city}}, {{ad.state}} - {{ad.zipcode}}</p>
+        </label>
+
+    </div>
+</div>
+{% endfor %}
+             <div class="form-check mb-3">
+                <label for="totalamount" class="form-label">Total Amount</label>
+                <input type="number" class="form-control" name="totalamount" value="{{totalamount}}" readonly>
+             </div>
+             <div class="text-end">
+                <!-- <button type="submit" class="btn btn-warning mt-3 px-5 fw-bold">Continue</button> -->
+                <!-- <div id="paypal-button-container"></div> -->
+                <!-- <button id="rzp-button1" type="submit" class="btn btn-warning mt-3 px-5 fw-bold">Payment</button>  -->
+                 <button type="button" id="checkout-button" class="btn btn-warning mt-3 px-5 fw-bold">
+    Pay Now
+</button>
+             </div>
+
+        </form>
+    </div>
+</div>
+</div>
+{% endblock main-content %}
+
+{% block payment-gateway %} 
+
+
+<script src="https://js.stripe.com/v3/"></script>
+
+<script>
+var stripe = Stripe("pk_test_51TGClDIO8O845uFtOluktbbYgLGzzuw25RGJcf21VAXJp9ZHrOQKL2aa0dnlB5Bz1kBJQig0INPFU4TjhVGoBd1q00Rpw7JC4a");  // apni key daalo
+
+function getCookie(name) {
+    let cookieValue = null;
+    let cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        let cookie = cookies[i].trim();
+        if (cookie.startsWith(name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        }
+    }
+    return cookieValue;
+}
+
+document.getElementById("checkout-button").onclick = function () {
+
+    let selectedAddress = document.querySelector('input[name="custid"]:checked');
+
+    if (!selectedAddress) {
+        alert("Please select address");
+        return;
+    }
+
+    let data = {
+        custid: selectedAddress.value
+    };
+
+    console.log("Sending data:", data);  // 🔍 debug
+
+    fetch("/checkout/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)   // 👈 THIS IS IMPORTANT
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log("Response:", data);
+        stripe.redirectToCheckout({ sessionId: data.id });
+    });
+
+};
+</script>
+
+
+{% endblock payment-gateway %}
+
